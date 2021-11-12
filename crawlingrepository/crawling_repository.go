@@ -3,6 +3,7 @@ package crawlingrepository
 import (
 	"context"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -27,10 +28,10 @@ func NewCrawling() CrawlingInterface {
 }
 
 type User struct {
-	Id        string
-	UserId    string
-	LastId    string
-	UpdatedAt time.Time
+	Id         string
+	UserId     string
+	officeName string
+	UpdatedAt  time.Time
 }
 
 type Bank struct {
@@ -115,6 +116,22 @@ func (c *crawlingRepository) Crawling(pass string, input *crawlingproto.UserInpu
 			return fmt.Errorf("確定申告のトップページに遷移できませんでした: %s", illegalCheck)
 		}
 		chromedp.WaitVisible(`body`, chromedp.ByQuery).Do(ctx)
+		officeNodes := []*cdp.Node{}
+
+		chromedp.Nodes(`#dropdown-office`, &officeNodes, chromedp.ByQuery).Do(ctx)
+		if len(officeNodes) == 0 {
+			return fmt.Errorf("会社名が取れませんでした。")
+		}
+		res, err := dom.GetOuterHTML().WithNodeID(officeNodes[0].NodeID).Do(ctx)
+		if err != nil {
+			fmt.Printf("会社名のdomが取得できませんでした %s", err)
+		}
+
+		user, err = scrapingOfOffice(res, user)
+		if err != nil {
+			fmt.Printf("error %s", err)
+		}
+
 		chromedp.Location(&illegalCheck).Do(ctx)
 		account := illegalCheck[40:]
 		registeredListUrl := "https://accounting.moneyforward.com/accounts" + account
@@ -178,10 +195,20 @@ func (c *crawlingRepository) Crawling(pass string, input *crawlingproto.UserInpu
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	log.Println(user[0])
 
 	return user, banks, details, err
 }
 
+func scrapingOfOffice(res string, user []*User) ([]*User, error) {
+	readerCurContents := strings.NewReader(res)
+	contentsDom, err := goquery.NewDocumentFromReader(readerCurContents)
+	if err != nil {
+		return nil, err
+	}
+	user = append(user, &User{officeName: contentsDom.Find("#dropdown-office").Text()})
+	return user, nil
+}
 func scrapingOfBanks(res string, banks []*Bank) ([]*Bank, error) {
 	readerCurContents := strings.NewReader(res)
 	contentsDom, err := goquery.NewDocumentFromReader(readerCurContents)

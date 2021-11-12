@@ -30,6 +30,13 @@ func (*server) UserHandler(ctx context.Context, req *pb.UserRequest) (*pb.UserRe
 	log.Println(banks[1])
 	log.Println(banks[2])
 	log.Println(details)
+
+	// db := crawlingrepository.NewDatabase()
+	// if err := db.UserCreate(user, req.UserInput.UserId, &today); err != nil {
+	// 	return &pb.UserResponse{
+	// 		IsSuccess: false,
+	// 	}, err
+	// }
 	return &pb.UserResponse{
 		IsSuccess: true,
 	}, nil

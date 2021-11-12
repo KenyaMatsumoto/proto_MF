@@ -28,16 +28,15 @@ package crawlingrepository
 // 	}
 // }
 
-// func (d *db) UserCreate(users []*User, userId string, updatedAt *time.Time) (err error) {
-// 	for _, v := range users {
+// func (d *db) UserCreate(user []*User, userId string, updatedAt *time.Time) (err error) {
+// 	for _, v := range user {
 // 		v.UserId = userId
-// 		v.UserIdOfficeName = v.UserId + "_" + v.OfficeName
 
-// 		updateStmt, err := d.Client.Prepare("UPDATE Users set userIdOfficeName = ?,userId = ?,officeName = ?,lastId = ?,updatedAt = ? where officeName = ?")
+// 		updateStmt, err := d.Client.Prepare("UPDATE Users set userId = ?, lastId = ?,updatedAt = ? where userId = ?")
 // 		if err != nil {
 // 			return err
 // 		}
-// 		result, err := updateStmt.Exec(v.UserIdOfficeName, v.UserId, v.OfficeName, v.LastId, updatedAt, v.OfficeName)
+// 		result, err := updateStmt.Exec(v.UserId, v.LastId, updatedAt)
 // 		if err != nil {
 // 			return err
 // 		}
@@ -48,7 +47,7 @@ package crawlingrepository
 // 		}
 
 // 		if rowsAffect == 0 {
-// 			insertStmt, err := d.Client.Prepare("INSERT INTO Users(userIdOfficeName,userId,officeName,lastId,updatedAt) VALUES(?, ?, ?, ?, ?)")
+// 			insertStmt, err := d.Client.Prepare("INSERT INTO Users(userId,lastId,updatedAt) VALUES(?, ?, ?)")
 // 			if err != nil {
 // 				return err
 // 			}
