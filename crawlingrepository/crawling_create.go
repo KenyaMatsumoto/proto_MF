@@ -1,64 +1,64 @@
 package crawlingrepository
 
-// import (
-// 	"database/sql"
-// 	"log"
-// 	"time"
+import (
+	"database/sql"
+	"log"
+	"time"
 
-// 	_ "github.com/go-sql-driver/mysql"
-// )
+	_ "github.com/go-sql-driver/mysql"
+)
 
-// type DB interface {
-// 	UserCreate(users []*User, userId string, updatedAt *time.Time) error
-// 	BankCreate(userId string, banks []*Bank, today *time.Time) error
-// 	DetailCreate(userId string, details []*Detail, today *time.Time) error
-// }
+type DB interface {
+	UserCreate(user []*User, userId string, updatedAt *time.Time) error
+	// BankCreate(userId string, banks []*Bank, today *time.Time) error
+	// DetailCreate(userId string, details []*Detail, today *time.Time) error
+}
 
-// type db struct {
-// 	Client *sql.DB
-// }
+type db struct {
+	Client *sql.DB
+}
 
-// func NewDatabase() DB {
-// 	client, err := sql.Open("mysql", "root@/freee")
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	return &db{
-// 		Client: client,
-// 	}
-// }
+func NewDatabase() DB {
+	client, err := sql.Open("mysql", "root@/freee")
+	if err != nil {
+		log.Fatal(err)
+	}
+	return &db{
+		Client: client,
+	}
+}
 
-// func (d *db) UserCreate(user []*User, userId string, updatedAt *time.Time) (err error) {
-// 	for _, v := range user {
-// 		v.UserId = userId
+func (d *db) UserCreate(user []*User, userId string, updatedAt *time.Time) (err error) {
+	for _, v := range user {
+		v.UserId = userId
 
-// 		updateStmt, err := d.Client.Prepare("UPDATE Users set userId = ?, lastId = ?,updatedAt = ? where userId = ?")
-// 		if err != nil {
-// 			return err
-// 		}
-// 		result, err := updateStmt.Exec(v.UserId, v.LastId, updatedAt)
-// 		if err != nil {
-// 			return err
-// 		}
+		updateStmt, err := d.Client.Prepare("UPDATE Users set officeName = ?, userId = ?,updatedAt = ? where userId = ?")
+		if err != nil {
+			return err
+		}
+		result, err := updateStmt.Exec(v.officeName, v.UserId, updatedAt)
+		if err != nil {
+			return err
+		}
 
-// 		rowsAffect, err := result.RowsAffected()
-// 		if err != nil {
-// 			return err
-// 		}
+		rowsAffect, err := result.RowsAffected()
+		if err != nil {
+			return err
+		}
 
-// 		if rowsAffect == 0 {
-// 			insertStmt, err := d.Client.Prepare("INSERT INTO Users(userId,lastId,updatedAt) VALUES(?, ?, ?)")
-// 			if err != nil {
-// 				return err
-// 			}
-// 			_, err = insertStmt.Exec(v.UserIdOfficeName, v.UserId, v.OfficeName, v.LastId, updatedAt)
-// 			if err != nil {
-// 				return err
-// 			}
-// 		}
-// 	}
-// 	return nil
-// }
+		if rowsAffect == 0 {
+			insertStmt, err := d.Client.Prepare("INSERT INTO Users(officeName, userId, updatedAt) VALUES(?, ?, ?)")
+			if err != nil {
+				return err
+			}
+			_, err = insertStmt.Exec(v.officeName, updatedAt)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
 
 // func (d *db) BankCreate(userId string, banks []*Bank, today *time.Time) error {
 // 	for _, v := range banks {
@@ -93,3 +93,4 @@ package crawlingrepository
 // 			}
 // 		}
 // 	}
+// }

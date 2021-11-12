@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net"
+	"time"
 
 	pb "github.com/gyoza-and-beer/proto-MF/crawlingproto"
 	"github.com/gyoza-and-beer/proto-MF/crawlingrepository"
@@ -15,7 +16,7 @@ type server struct{}
 func (*server) UserHandler(ctx context.Context, req *pb.UserRequest) (*pb.UserResponse, error) {
 
 	newC := crawlingrepository.NewCrawling()
-	// today := time.Now()
+	today := time.Now()
 
 	user, banks, details, err := newC.Crawling(req.Pass, req.UserInput)
 	if err != nil {
@@ -31,12 +32,12 @@ func (*server) UserHandler(ctx context.Context, req *pb.UserRequest) (*pb.UserRe
 	log.Println(banks[2])
 	log.Println(details)
 
-	// db := crawlingrepository.NewDatabase()
-	// if err := db.UserCreate(user, req.UserInput.UserId, &today); err != nil {
-	// 	return &pb.UserResponse{
-	// 		IsSuccess: false,
-	// 	}, err
-	// }
+	db := crawlingrepository.NewDatabase()
+	if err := db.UserCreate(user, req.UserInput.UserId, &today); err != nil {
+		return &pb.UserResponse{
+			IsSuccess: false,
+		}, err
+	}
 	return &pb.UserResponse{
 		IsSuccess: true,
 	}, nil

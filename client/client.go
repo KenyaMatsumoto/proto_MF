@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 
 	pb "github.com/gyoza-and-beer/proto-MF/crawlingproto"
 	"google.golang.org/grpc"
@@ -23,9 +24,9 @@ func main() {
 func crawlingWrite(c pb.CrawlingServiceClient) {
 	req := &pb.UserRequest{
 		UserInput: &pb.UserInput{
-			UserId: "moviexbox123@gmail.com",
+			UserId: os.Args[1],
 		},
-		Pass:     "XM.4tWUS3aB_ZHG",
+		Pass:     os.Args[2],
 		SiteKind: 2,
 	}
 
