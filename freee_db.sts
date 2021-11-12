@@ -1,0 +1,60 @@
+create TABLE Users (
+    id int auto_increment primary key not null,
+    userIdOfficeName char(255) not null,
+    userId char(255) not null,
+    officeName char(255) not null,
+    lastId char(255) not null,
+    updatedAt timestamp not null
+);
+
+create TABLE Banks(
+    id int auto_increment primary key not null,
+    userId char(255) not null,
+    bankId char(255) not null,
+    LastCommitDate char(255) not null,
+    officeName char(255) not null,
+    bankName char(255) not null,
+    amount int not null,
+    TopSyncStatus char(255) not null,
+    updatedAt timestamp not null
+);
+
+create TABLE Cards(
+    id int auto_increment primary key not null,
+    userId char(255) not null,
+    cardId char(255) not null,
+    LastCommitDate char(255) not null,
+    officeName char(255) not null,
+    cardName char(255) not null,
+    amount int not null,
+    TopSyncStatus char(255) not null,
+    updatedAt timestamp not null
+);
+
+create TABLE Others(
+    id int auto_increment primary key not null,
+    userId char(255) not null,
+    otherId char(255) not null,
+    LastCommitDate char(255) not null,
+    officeName char(255) not null,
+    otherName char(255) not null,
+    amount int not null,
+    TopSyncStatus char(255) not null,
+    updatedAt timestamp not null
+);
+
+CREATE TABLE Details (
+    id int auto_increment primary key not null,
+    userId char(255) not null,
+    bankId char(255) not null,
+    officeName char(255) not null,
+    bankName char(255) not null,
+    tradingDate timestamp not null,
+    tradingContent char(255),
+    payment int,
+    withdrawal int,
+    balance int,
+    UpdatedDate timestamp not null,
+    GettingDate timestamp not null,
+    crawling timestamp not null
+);

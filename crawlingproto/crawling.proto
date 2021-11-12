@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package crawlingproto;
+option go_package = "crawlingproto/";
+
+
+service CrawlingService {
+  rpc UserHandler(UserRequest) returns (UserResponse) {};
+}
+
+message UserRequest {
+  UserInput user_input = 1;
+  string pass = 2;
+  int32 site_kind = 3;
+}
+
+message UserInput {
+  string user_id = 1;
+}
+
+message UserResponse {
+  bool is_success = 1;
+}
+
+
