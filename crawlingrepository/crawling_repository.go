@@ -28,9 +28,8 @@ func NewCrawling() CrawlingInterface {
 }
 
 type User struct {
-	Id         string
-	UserId     string
 	officeName string
+	UserId     string
 	UpdatedAt  time.Time
 }
 
@@ -38,6 +37,7 @@ type Bank struct {
 	Id              string
 	UserId          string
 	BankId          string
+	OfficeName      string
 	BankName        string
 	Amount          int64
 	LastCommit      string
@@ -53,22 +53,23 @@ type Detail struct {
 	TradingDate       string
 	TradingContent    string
 	Payment           int64
+	Amount            int64
 	BankName          string
 	Status            string
-	UpdatedDate       string
-	GettingDate       string
 	TransactionNumber string
+	edit              string
 	Crawling          time.Time
 }
 
-// スクレイピング時に必要な事業所名、銀行口座名、銀行口座ID
-// var bankNameAndId []map[string]string
-// var officeName string
+type DetailUrl struct {
+	DetailUrl string
+}
 
 func (c *crawlingRepository) Crawling(pass string, input *crawlingproto.UserInput) ([]*User, []*Bank, []*Detail, error) {
 	var user []*User
 	var banks []*Bank
 	var details []*Detail
+	var detailsUrl []*DetailUrl
 
 	ctx, cancel := context.WithTimeout(config.NewChromedpContext(), 3*time.Minute)
 	defer cancel()
@@ -127,7 +128,7 @@ func (c *crawlingRepository) Crawling(pass string, input *crawlingproto.UserInpu
 			fmt.Printf("会社名のdomが取得できませんでした %s", err)
 		}
 
-		user, err = scrapingOfOffice(res, user)
+		user, err = scrapingOfOfficeName(res, user)
 		if err != nil {
 			fmt.Printf("error %s", err)
 		}
@@ -157,10 +158,11 @@ func (c *crawlingRepository) Crawling(pass string, input *crawlingproto.UserInpu
 				fmt.Printf("error %s", err)
 			}
 
-			banks, err = scrapingOfBanks(res, banks)
+			banks, detailsUrl, err = scrapingOfBanks(res, banks, user, detailsUrl)
 			if err != nil {
 				fmt.Printf("error %s", err)
 			}
+
 			for i, n := range banks {
 				var detailURL = n.Kind
 				kind, err := fetchBanksKind(ctx, detailURL, registeredListUrl)
@@ -171,17 +173,47 @@ func (c *crawlingRepository) Crawling(pass string, input *crawlingproto.UserInpu
 			}
 			return nil
 		})
-		chromedp.Run(ctx, fetchBanks)
 
-		// banks, err := fetchBanks(ctx, banks, registeredListUrl)
-		// for _, bank := range banks {
-		// 	fmt.Println(bank.Kind)
-		// }
-		// fmt.Println(err)
-		// err := chromedp.Run(ctx, getBanksActionFunc, getDetailActionFunc)
-		// if err != nil {
-		// 	return err
-		// }
+		fetchDetails := chromedp.ActionFunc(func(ctx context.Context) error {
+			continuationNode := []*cdp.Node{}
+			detailsNode := []*cdp.Node{}
+			for _, n := range detailsUrl {
+				detail := n.DetailUrl
+				chromedp.Navigate(detail).Do(ctx)
+				chromedp.WaitVisible(`#js-acts-table-tbody`, chromedp.NodeVisible).Do(ctx)
+				time.Sleep(3 * time.Second)
+				chromedp.Location(&illegalCheck).Do(ctx)
+				if !strings.Contains(illegalCheck, "https://accounting.moneyforward.com/accounts/trans_list") {
+					return fmt.Errorf("銀行、カード詳細ページに遷移できませんでした: %s", illegalCheck)
+				}
+
+				chromedp.Nodes(`#js-btn-acts-more`, &continuationNode, chromedp.AtLeast(0)).Do(ctx)
+				for len(continuationNode) != 0 {
+					chromedp.Click(`#js-btn-acts-more`, chromedp.NodeVisible).Do(ctx)
+					chromedp.WaitVisible(`#js-acts-table-tbody`, chromedp.NodeVisible).Do(ctx)
+					time.Sleep(3 * time.Second)
+					chromedp.Nodes(`#js-btn-acts-more`, &continuationNode, chromedp.AtLeast(0)).Do(ctx)
+				}
+				chromedp.Nodes(`.ca-table`, &detailsNode, chromedp.ByQueryAll).Do(ctx)
+				if len(detailsNode) == 0 {
+					return fmt.Errorf("銀行、並びにカード情報が取れませんでした。")
+				}
+				res, err := dom.GetOuterHTML().WithNodeID(detailsNode[0].NodeID).Do(ctx)
+				if err != nil {
+					fmt.Printf("error %s", err)
+				}
+
+				details, err = scrapingOfDetails(res, details)
+				log.Println(len(details))
+				if err != nil {
+					fmt.Printf("error %s", err)
+				}
+
+			}
+			return nil
+		})
+
+		chromedp.Run(ctx, fetchBanks, fetchDetails)
 
 		return nil
 
@@ -195,12 +227,11 @@ func (c *crawlingRepository) Crawling(pass string, input *crawlingproto.UserInpu
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	log.Println(user[0])
 
 	return user, banks, details, err
 }
 
-func scrapingOfOffice(res string, user []*User) ([]*User, error) {
+func scrapingOfOfficeName(res string, user []*User) ([]*User, error) {
 	readerCurContents := strings.NewReader(res)
 	contentsDom, err := goquery.NewDocumentFromReader(readerCurContents)
 	if err != nil {
@@ -209,12 +240,13 @@ func scrapingOfOffice(res string, user []*User) ([]*User, error) {
 	user = append(user, &User{officeName: contentsDom.Find("#dropdown-office").Text()})
 	return user, nil
 }
-func scrapingOfBanks(res string, banks []*Bank) ([]*Bank, error) {
+
+func scrapingOfBanks(res string, banks []*Bank, user []*User, detailsUrl []*DetailUrl) ([]*Bank, []*DetailUrl, error) {
 	readerCurContents := strings.NewReader(res)
 	contentsDom, err := goquery.NewDocumentFromReader(readerCurContents)
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	contentsDom.Find(`tr.js-account-row`).Each(func(i int, v *goquery.Selection) {
 		bankName := v.Find("td").Text()
@@ -236,13 +268,17 @@ func scrapingOfBanks(res string, banks []*Bank) ([]*Bank, error) {
 			Id:              uuid.NewString(),
 			BankName:        bankName[:strings.Index(bankName, "（")],
 			Amount:          amount,
+			OfficeName:      user[0].officeName,
 			LastCommit:      v.Find("td:nth-child(3)").Text(),
 			ResitrationDate: v.Find("td.last-aggregated-datetime.text-center").Text(),
 			BankStatus:      bankStatus,
 			Kind:            kindURL,
 		})
+		detailsUrl = append(detailsUrl, &DetailUrl{
+			DetailUrl: kindURL,
+		})
 	})
-	return banks, nil
+	return banks, detailsUrl, nil
 }
 
 func fetchBanksKind(ctx context.Context, detailUrl string, registeredListUrl string) (string, error) {
@@ -268,4 +304,37 @@ func fetchBanksKind(ctx context.Context, detailUrl string, registeredListUrl str
 		kind = "クレジットカード"
 	}
 	return kind, nil
+}
+
+func scrapingOfDetails(res string, details []*Detail) ([]*Detail, error) {
+	readerCurContents := strings.NewReader(res)
+	contentsDom, err := goquery.NewDocumentFromReader(readerCurContents)
+
+	if err != nil {
+		return nil, err
+	}
+	contentsDom.Find(`#js-acts-table-tbody > tr`).Each(func(i int, v *goquery.Selection) {
+
+		strPayment := v.Find("td:nth-child(4)").Text()
+		strPayment = strings.Replace(strPayment, "円", "", -1)
+		strPayment = strings.Replace(strPayment, ",", "", -1)
+		payment, _ := strconv.ParseInt(strPayment, 10, 64)
+
+		strAmount := v.Find("td:nth-child(5)").Text()
+		strAmount = strings.Replace(strAmount, "円", "", -1)
+		strAmount = strings.Replace(strAmount, ",", "", -1)
+		amount, _ := strconv.ParseInt(strAmount, 10, 64)
+
+		details = append(details, &Detail{
+			TradingDate:       v.Find("td:nth-child(2)").Text(),
+			TradingContent:    v.Find("td:nth-child(3)").Text(),
+			Payment:           payment,
+			Amount:            amount,
+			BankName:          v.Find("td:nth-child(6)").Text(),
+			Status:            v.Find("td:nth-child(7)").Text(),
+			TransactionNumber: v.Find("td:nth-child(8)").Text(),
+			edit:              v.Find("td:nth-child(9)").Text(),
+		})
+	})
+	return details, nil
 }

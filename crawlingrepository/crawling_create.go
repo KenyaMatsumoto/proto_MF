@@ -10,8 +10,8 @@ import (
 
 type DB interface {
 	UserCreate(user []*User, userId string, updatedAt *time.Time) error
-	// BankCreate(userId string, banks []*Bank, today *time.Time) error
-	// DetailCreate(userId string, details []*Detail, today *time.Time) error
+	BankCreate(userId string, banks []*Bank, today *time.Time) error
+	DetailCreate(userId string, details []*Detail, today *time.Time) error
 }
 
 type db struct {
@@ -19,7 +19,7 @@ type db struct {
 }
 
 func NewDatabase() DB {
-	client, err := sql.Open("mysql", "root@/freee")
+	client, err := sql.Open("mysql", "root@/mf")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -32,26 +32,27 @@ func (d *db) UserCreate(user []*User, userId string, updatedAt *time.Time) (err 
 	for _, v := range user {
 		v.UserId = userId
 
-		updateStmt, err := d.Client.Prepare("UPDATE Users set officeName = ?, userId = ?,updatedAt = ? where userId = ?")
+		updateStmt, err := d.Client.Prepare("UPDATE Users set office_name = ?, user_id = ?, updated_at = ? where office_name = ?")
 		if err != nil {
 			return err
 		}
-		result, err := updateStmt.Exec(v.officeName, v.UserId, updatedAt)
+		result, err := updateStmt.Exec(v.officeName, v.UserId, updatedAt, v.officeName)
 		if err != nil {
 			return err
 		}
 
 		rowsAffect, err := result.RowsAffected()
+		log.Println(rowsAffect)
 		if err != nil {
 			return err
 		}
 
 		if rowsAffect == 0 {
-			insertStmt, err := d.Client.Prepare("INSERT INTO Users(officeName, userId, updatedAt) VALUES(?, ?, ?)")
+			insertStmt, err := d.Client.Prepare("INSERT INTO Users(office_name, user_id, updated_at) VALUES(?, ?, ?)")
 			if err != nil {
 				return err
 			}
-			_, err = insertStmt.Exec(v.officeName, updatedAt)
+			_, err = insertStmt.Exec(v.officeName, v.UserId, updatedAt)
 			if err != nil {
 				return err
 			}
@@ -60,37 +61,45 @@ func (d *db) UserCreate(user []*User, userId string, updatedAt *time.Time) (err 
 	return nil
 }
 
-// func (d *db) BankCreate(userId string, banks []*Bank, today *time.Time) error {
-// 	for _, v := range banks {
-// 		if v.Kind == "銀行口座" {
+func (d *db) BankCreate(userId string, banks []*Bank, today *time.Time) error {
+	for _, v := range banks {
+		if v.Kind == "銀行" {
 
-// 			insertStmt, err := d.Client.Prepare("INSERT INTO Banks(userId,bankId,LastCommitDate,officeName,bankName,amount,TopSyncStatus,updatedAt) VALUES(?, ?, ?, ?, ?, ?, ?, ?)")
-// 			if err != nil {
-// 				return err
-// 			}
-// 			_, err = insertStmt.Exec(userId, v.BankId, v.LastCommit, v.OfficeName, v.BankName, v.Amount, v.TopSyncStatus, today)
-// 			if err != nil {
-// 				return err
-// 			}
+			insertStmt, err := d.Client.Prepare("INSERT INTO Banks(user_id,bank_id,bank_name,office_name, amount,bank_status, last_commit_date,updated_at) VALUES(?, ?, ?, ?, ?, ?, ?, ?)")
+			if err != nil {
+				return err
+			}
+			_, err = insertStmt.Exec(userId, v.BankId, v.BankName, v.OfficeName, v.Amount, v.BankStatus, v.ResitrationDate, today)
+			if err != nil {
+				return err
+			}
 
-// 		} else if v.Kind == "クレジットカード" {
-// 			insertStmt, err := d.Client.Prepare("INSERT INTO Cards(userId,cardId,LastCommitDate,officeName,cardName,amount,TopSyncStatus,updatedAt) VALUES(?, ?, ?, ?, ?, ?, ?, ?)")
-// 			if err != nil {
-// 				return err
-// 			}
-// 			_, err = insertStmt.Exec(userId, v.BankId, v.LastCommit, v.OfficeName, v.BankName, v.Amount, v.TopSyncStatus, today)
-// 			if err != nil {
-// 				return err
-// 			}
-// 		} else {
-// 			insertStmt, err := d.Client.Prepare("INSERT INTO Others(userId,otherId,LastCommitDate,officeName,otherName,amount, TopSyncStatus,updatedAt) VALUES(?, ?, ?, ?, ?, ?, ?, ?)")
-// 			if err != nil {
-// 				return err
-// 			}
-// 			_, err = insertStmt.Exec(userId, v.BankId, v.LastCommit, v.OfficeName, v.BankName, v.Amount, v.TopSyncStatus, today)
-// 			if err != nil {
-// 				return err
-// 			}
-// 		}
-// 	}
-// }
+		} else {
+			insertStmt, err := d.Client.Prepare("INSERT INTO Cards(user_id,card_id,card_name,office_name, amount,card_status, last_commit_date,updated_at) VALUES(?, ?, ?, ?, ?, ?, ?, ?)")
+			if err != nil {
+				return err
+			}
+			_, err = insertStmt.Exec(userId, v.BankId, v.BankName, v.OfficeName, v.Amount, v.BankStatus, v.ResitrationDate, today)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (d *db) DetailCreate(userId string, details []*Detail, today *time.Time) error {
+	for _, v := range details {
+
+		insertStmt, err := d.Client.Prepare("INSERT INTO Details(user_id, bank_name, trading_date, trading_content, payment, amount, status, transaction_number, edit, crawling) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+		if err != nil {
+			return err
+		}
+		_, err = insertStmt.Exec(userId, v.BankName, v.TradingDate, v.TradingContent, v.Payment, v.Amount, v.Status, v.TransactionNumber, v.edit, today)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
