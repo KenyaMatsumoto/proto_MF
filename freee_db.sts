@@ -1,60 +1,45 @@
 create TABLE Users (
     id int auto_increment primary key not null,
-    userIdOfficeName char(255) not null,
-    userId char(255) not null,
-    officeName char(255) not null,
-    lastId char(255) not null,
-    updatedAt timestamp not null
+    office_name char(255) not null,
+    user_id char(255) not null,
+    updated_at timestamp not null
 );
 
 create TABLE Banks(
     id int auto_increment primary key not null,
-    userId char(255) not null,
-    bankId char(255) not null,
-    LastCommitDate char(255) not null,
-    officeName char(255) not null,
-    bankName char(255) not null,
+    user_id char(255) not null,
+    bank_id char(255) not null,
+    bank_name char(255) not null,
+    office_name char(255) not null,
     amount int not null,
-    TopSyncStatus char(255) not null,
-    updatedAt timestamp not null
+    bank_status char(255) not null,
+    last_commit_date char(255) not null,
+    updated_at timestamp not null
 );
 
 create TABLE Cards(
     id int auto_increment primary key not null,
-    userId char(255) not null,
-    cardId char(255) not null,
-    LastCommitDate char(255) not null,
-    officeName char(255) not null,
-    cardName char(255) not null,
+    user_id char(255) not null,
+    card_id char(255) not null,
+    card_name char(255) not null,
+    office_name char(255) not null,
     amount int not null,
-    TopSyncStatus char(255) not null,
-    updatedAt timestamp not null
+    card_status char(255) not null,
+    last_commit_date char(255) not null,
+    updated_at timestamp not null
 );
 
-create TABLE Others(
-    id int auto_increment primary key not null,
-    userId char(255) not null,
-    otherId char(255) not null,
-    LastCommitDate char(255) not null,
-    officeName char(255) not null,
-    otherName char(255) not null,
-    amount int not null,
-    TopSyncStatus char(255) not null,
-    updatedAt timestamp not null
-);
 
 CREATE TABLE Details (
     id int auto_increment primary key not null,
-    userId char(255) not null,
-    bankId char(255) not null,
-    officeName char(255) not null,
-    bankName char(255) not null,
-    tradingDate timestamp not null,
-    tradingContent char(255),
+    user_id char(255) not null,
+    bank_name char(255) not null,
+    trading_date timestamp not null,
+    trading_content char(255),
     payment int,
-    withdrawal int,
-    balance int,
-    UpdatedDate timestamp not null,
-    GettingDate timestamp not null,
+    amount int,
+    status char(255),
+    transaction_number char(255),
+    edit char(255), 
     crawling timestamp not null
 );

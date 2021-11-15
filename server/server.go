@@ -53,6 +53,20 @@ func (*server) UserHandler(ctx context.Context, req *pb.UserRequest) (*pb.UserRe
 	}, nil
 }
 
+func (*server) MfRead(ctx context.Context, req *pb.MfRequest) (*pb.MfResponse, error) {
+	// client, err := sql.Open("mysql", "root@/freee?parseTime=true&loc=Asia%2FTokyo")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// cr := crawlingrepository.(client)
+	// offices, err := cr.OfficeRead(ctx, req)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	return nil, nil
+}
+
 func main() {
 	port := ":50051"
 	lis, err := net.Listen("tcp", port)

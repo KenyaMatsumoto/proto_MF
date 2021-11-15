@@ -77,13 +77,10 @@ func (c *crawlingRepository) Crawling(pass string, input *crawlingproto.UserInpu
 	loginURL := "https://erp.moneyforward.com/session/new"
 	topURL := "https://erp.moneyforward.com/home"
 	illegalCheck := ""
-	// illegalCheckNode := []*cdp.Node{}
 
 	loginIdSel := `/html/body/main/div/div/div/div/div[2]/div/div[2]/div[1]/section/form/div[2]/div/input`
 	loginPassSel := `/html/body/main/div/div/div/div/div[2]/div/div[2]/div[1]/section/form/div[2]/div/input[2]`
 	nextLoginButtonSel := `/html/body/main/div/div/div/div/div[2]/div/div[2]/div[1]/section/form/div[2]/div/div[3]/input`
-
-	// topLoginButtonSel := `/html/body/main/div/div/div/div/div[2]/div/div[2]/div[1]/section/form/div[2]/div/div[3]/input`
 
 	loginActionFunc := chromedp.ActionFunc(func(ctx context.Context) error {
 		chromedp.Navigate(loginURL).Do(ctx)
@@ -191,7 +188,7 @@ func (c *crawlingRepository) Crawling(pass string, input *crawlingproto.UserInpu
 				for len(continuationNode) != 0 {
 					chromedp.Click(`#js-btn-acts-more`, chromedp.NodeVisible).Do(ctx)
 					chromedp.WaitVisible(`#js-acts-table-tbody`, chromedp.NodeVisible).Do(ctx)
-					time.Sleep(3 * time.Second)
+					time.Sleep(1 * time.Second)
 					chromedp.Nodes(`#js-btn-acts-more`, &continuationNode, chromedp.AtLeast(0)).Do(ctx)
 				}
 				chromedp.Nodes(`.ca-table`, &detailsNode, chromedp.ByQueryAll).Do(ctx)
@@ -250,22 +247,24 @@ func scrapingOfBanks(res string, banks []*Bank, user []*User, detailsUrl []*Deta
 	}
 	contentsDom.Find(`tr.js-account-row`).Each(func(i int, v *goquery.Selection) {
 		bankName := v.Find("td").Text()
-
-		strAmount := v.Find("td.text-right").Text()
-		strAmount = strings.Replace(strAmount, "円", "", -1)
-		strAmount = strings.Replace(strAmount, ",", "", -1)
-		amount, _ := strconv.ParseInt(strAmount, 10, 64)
+		strA := v.Find("td.text-right").Text()
+		strA = strings.Replace(strA, "円", "", -1)
+		strA = strings.Replace(strA, ",", "", -1)
+		amount, _ := strconv.ParseInt(strA, 10, 64)
 
 		bankStatus := v.Find("td:nth-child(5) span span").Text()
 		if bankStatus != "正常" {
 			bankStatus = "取得中"
 		}
 
+		bankId, _ := v.Find("td:nth-child(6)").Attr("id")
+
 		kindURL, _ := v.Find("td:nth-child(8) a").Attr("href")
 		kindURL = "https://accounting.moneyforward.com" + kindURL
 
 		banks = append(banks, &Bank{
 			Id:              uuid.NewString(),
+			BankId:          strings.Replace(bankId, "js-edit-account-", "", 1),
 			BankName:        bankName[:strings.Index(bankName, "（")],
 			Amount:          amount,
 			OfficeName:      user[0].officeName,
@@ -315,15 +314,15 @@ func scrapingOfDetails(res string, details []*Detail) ([]*Detail, error) {
 	}
 	contentsDom.Find(`#js-acts-table-tbody > tr`).Each(func(i int, v *goquery.Selection) {
 
-		strPayment := v.Find("td:nth-child(4)").Text()
-		strPayment = strings.Replace(strPayment, "円", "", -1)
-		strPayment = strings.Replace(strPayment, ",", "", -1)
-		payment, _ := strconv.ParseInt(strPayment, 10, 64)
+		strP := v.Find("td:nth-child(4)").Text()
+		strP = strings.Replace(strP, "円", "", -1)
+		strP = strings.Replace(strP, ",", "", -1)
+		payment, _ := strconv.ParseInt(strP, 10, 64)
 
-		strAmount := v.Find("td:nth-child(5)").Text()
-		strAmount = strings.Replace(strAmount, "円", "", -1)
-		strAmount = strings.Replace(strAmount, ",", "", -1)
-		amount, _ := strconv.ParseInt(strAmount, 10, 64)
+		strA := v.Find("td:nth-child(5)").Text()
+		strA = strings.Replace(strA, "円", "", -1)
+		strA = strings.Replace(strA, ",", "", -1)
+		amount, _ := strconv.ParseInt(strA, 10, 64)
 
 		details = append(details, &Detail{
 			TradingDate:       v.Find("td:nth-child(2)").Text(),

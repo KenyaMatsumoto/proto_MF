@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 
@@ -19,6 +20,7 @@ func main() {
 	c := pb.NewCrawlingServiceClient(cc)
 
 	crawlingWrite(c)
+	// crawlingRead(c)
 }
 
 func crawlingWrite(c pb.CrawlingServiceClient) {
@@ -35,4 +37,19 @@ func crawlingWrite(c pb.CrawlingServiceClient) {
 		log.Fatalf("error while calling Greet RPC: %v", err)
 	}
 	log.Print(res)
+}
+
+func crawlingRead(c pb.CrawlingServiceClient) {
+	req := &pb.MfRequest{
+		UserInput: &pb.UserInput{
+			UserId: os.Args[1],
+		},
+	}
+
+	res, err := c.MfRead(context.Background(), req)
+	if err != nil {
+		log.Fatalf("error while calling Greet RPC: %v", err)
+	}
+	fmt.Print(res)
+
 }
