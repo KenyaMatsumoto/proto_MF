@@ -19,8 +19,8 @@ func main() {
 	defer cc.Close()
 	c := pb.NewCrawlingServiceClient(cc)
 
-	crawlingWrite(c)
-	// crawlingRead(c)
+	// crawlingWrite(c)
+	crawlingRead(c)
 }
 
 func crawlingWrite(c pb.CrawlingServiceClient) {

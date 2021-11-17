@@ -3,7 +3,6 @@ package crawlingrepository
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -174,9 +173,9 @@ func (c *crawlingRepository) Crawling(pass string, input *crawlingproto.UserInpu
 		fetchDetails := chromedp.ActionFunc(func(ctx context.Context) error {
 			continuationNode := []*cdp.Node{}
 			detailsNode := []*cdp.Node{}
+			bankIdNode := []*cdp.Node{}
 			for _, n := range detailsUrl {
-				detail := n.DetailUrl
-				chromedp.Navigate(detail).Do(ctx)
+				chromedp.Navigate(n.DetailUrl).Do(ctx)
 				chromedp.WaitVisible(`#js-acts-table-tbody`, chromedp.NodeVisible).Do(ctx)
 				time.Sleep(3 * time.Second)
 				chromedp.Location(&illegalCheck).Do(ctx)
@@ -191,6 +190,15 @@ func (c *crawlingRepository) Crawling(pass string, input *crawlingproto.UserInpu
 					time.Sleep(1 * time.Second)
 					chromedp.Nodes(`#js-btn-acts-more`, &continuationNode, chromedp.AtLeast(0)).Do(ctx)
 				}
+				chromedp.Nodes(`.ca-general-container`, &bankIdNode, chromedp.ByQuery).Do(ctx)
+				res, err = dom.GetOuterHTML().WithNodeID(bankIdNode[0].NodeID).Do(ctx)
+				if err != nil {
+					fmt.Printf("error %s", err)
+				}
+				bankId, err := scrapingOfDetailBankId(res)
+				if err != nil {
+					fmt.Printf("error %s", err)
+				}
 				chromedp.Nodes(`.ca-table`, &detailsNode, chromedp.ByQueryAll).Do(ctx)
 				if len(detailsNode) == 0 {
 					return fmt.Errorf("銀行、並びにカード情報が取れませんでした。")
@@ -200,8 +208,7 @@ func (c *crawlingRepository) Crawling(pass string, input *crawlingproto.UserInpu
 					fmt.Printf("error %s", err)
 				}
 
-				details, err = scrapingOfDetails(res, details)
-				log.Println(len(details))
+				details, err = scrapingOfDetails(res, details, bankId)
 				if err != nil {
 					fmt.Printf("error %s", err)
 				}
@@ -305,7 +312,7 @@ func fetchBanksKind(ctx context.Context, detailUrl string, registeredListUrl str
 	return kind, nil
 }
 
-func scrapingOfDetails(res string, details []*Detail) ([]*Detail, error) {
+func scrapingOfDetails(res string, details []*Detail, bankId string) ([]*Detail, error) {
 	readerCurContents := strings.NewReader(res)
 	contentsDom, err := goquery.NewDocumentFromReader(readerCurContents)
 
@@ -325,6 +332,7 @@ func scrapingOfDetails(res string, details []*Detail) ([]*Detail, error) {
 		amount, _ := strconv.ParseInt(strA, 10, 64)
 
 		details = append(details, &Detail{
+			BankId:            bankId,
 			TradingDate:       v.Find("td:nth-child(2)").Text(),
 			TradingContent:    v.Find("td:nth-child(3)").Text(),
 			Payment:           payment,
@@ -336,4 +344,14 @@ func scrapingOfDetails(res string, details []*Detail) ([]*Detail, error) {
 		})
 	})
 	return details, nil
+}
+
+func scrapingOfDetailBankId(res string) (string, error) {
+	readerCurContents := strings.NewReader(res)
+	contentsDom, err := goquery.NewDocumentFromReader(readerCurContents)
+	if err != nil {
+		return "", err
+	}
+	bankId, _ := contentsDom.Find(".js-account-searchable-input").Attr("data-accountid")
+	return bankId, nil
 }

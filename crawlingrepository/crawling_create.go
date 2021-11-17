@@ -92,11 +92,12 @@ func (d *db) BankCreate(userId string, banks []*Bank, today *time.Time) error {
 func (d *db) DetailCreate(userId string, details []*Detail, today *time.Time) error {
 	for _, v := range details {
 
-		insertStmt, err := d.Client.Prepare("INSERT INTO Details(user_id, bank_name, trading_date, trading_content, payment, amount, status, transaction_number, edit, crawling) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+		insertStmt, err := d.Client.Prepare("INSERT INTO Details(user_id, bank_id, bank_name, trading_date, trading_content, payment, amount, status, transaction_number, edit, crawling) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 		if err != nil {
 			return err
 		}
-		_, err = insertStmt.Exec(userId, v.BankName, v.TradingDate, v.TradingContent, v.Payment, v.Amount, v.Status, v.TransactionNumber, v.edit, today)
+
+		_, err = insertStmt.Exec(userId, v.BankId, v.BankName, v.TradingDate, v.TradingContent, v.Payment, v.Amount, v.Status, v.TransactionNumber, v.edit, today)
 		if err != nil {
 			return err
 		}

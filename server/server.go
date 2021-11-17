@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"net"
 	"time"
@@ -54,17 +55,35 @@ func (*server) UserHandler(ctx context.Context, req *pb.UserRequest) (*pb.UserRe
 }
 
 func (*server) MfRead(ctx context.Context, req *pb.MfRequest) (*pb.MfResponse, error) {
-	// client, err := sql.Open("mysql", "root@/freee?parseTime=true&loc=Asia%2FTokyo")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// cr := crawlingrepository.(client)
-	// offices, err := cr.OfficeRead(ctx, req)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	client, err := sql.Open("mysql", "root@/mf?parseTime=true&loc=Asia%2FTokyo")
+	if err != nil {
+		log.Fatal(err)
+	}
+	cr := crawlingrepository.NewCrawlingRead(client)
+	log.Println("DB read start. user input:", req.UserInput.UserId)
 
-	return nil, nil
+	user, err := cr.UserRead(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	log.Println(user)
+
+	resultBanks, err := cr.BankRead(ctx, req, user[0].OfficeName, req.StartDay, req.LastDay)
+	if err != nil {
+		return nil, err
+	}
+	log.Println("test")
+	resultCards, err := cr.CardRead(ctx, req, user[0].OfficeName, req.StartDay, req.LastDay)
+	if err != nil {
+		return nil, err
+	}
+	user[0].Banks = resultBanks
+	user[0].Cards = resultCards
+	log.Println("read DB success")
+
+	return &pb.MfResponse{
+		Office: user[0],
+	}, nil
 }
 
 func main() {
