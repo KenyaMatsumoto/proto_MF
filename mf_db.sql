@@ -1,3 +1,5 @@
+CREATE DATABASE mf;
+USE mf;
 create TABLE Users (
     id int auto_increment primary key not null,
     office_name char(255) not null,
@@ -33,8 +35,9 @@ create TABLE Cards(
 CREATE TABLE Details (
     id int auto_increment primary key not null,
     user_id char(255) not null,
+    bank_id char(255) not null,
     bank_name char(255) not null,
-    trading_date timestamp not null,
+    trading_date date not null,
     trading_content char(255),
     payment int,
     amount int,

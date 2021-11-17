@@ -286,12 +286,22 @@ func scrapingOfBanks(res string, banks []*Bank, user []*User, detailUrls []*Deta
 func fetchBanksKind(ctx context.Context, detailUrl string, registeredListUrl string) (string, error) {
 	var illegalCheck string
 	var kind string
+	bankKindNodes := []*cdp.Node{}
 
 	chromedp.Navigate(detailUrl).Do(ctx)
 	chromedp.WaitVisible(`#js-acts-table-tbody`, chromedp.NodeVisible).Do(ctx)
 	chromedp.Location(&illegalCheck).Do(ctx)
 	if !strings.Contains(illegalCheck, "https://accounting.moneyforward.com/accounts/trans_list") {
 		return "", fmt.Errorf("銀行、カード詳細ページに遷移できませんでした: %s", illegalCheck)
+	}
+
+	chromedp.Nodes(`.sub-account-txt`, &bankKindNodes, chromedp.ByQueryAll).Do(ctx)
+	if len(bankKindNodes) == 0 {
+		return "", fmt.Errorf("銀行、並びにカード情報のNode取れませんでした。")
+	}
+	res, err := dom.GetOuterHTML().WithNodeID(bankKindNodes[0].NodeID).Do(ctx)
+	if err != nil {
+		return "", fmt.Errorf("銀行、並びにカード情報のdomが取れませんでした。 %s", err)
 	}
 	chromedp.Text(`.sub-account-txt`, &kind, chromedp.NodeVisible).Do(ctx)
 	chromedp.Navigate(registeredListUrl).Do(ctx)
@@ -300,6 +310,21 @@ func fetchBanksKind(ctx context.Context, detailUrl string, registeredListUrl str
 		return "", fmt.Errorf("明細の登録済み一覧ページに遷移できませんでした: %s", illegalCheck)
 	}
 	chromedp.WaitVisible(`body`, chromedp.ByQuery).Do(ctx)
+	kind, err = scrapingOfBankKind(res)
+	if err != nil {
+		return "", fmt.Errorf("銀行、並びにカード情報が取れませんでした。 %s", err)
+	}
+
+	return kind, nil
+}
+
+func scrapingOfBankKind(res string) (string, error) {
+	readerCurContents := strings.NewReader(res)
+	contentsDom, err := goquery.NewDocumentFromReader(readerCurContents)
+	if err != nil {
+		return "", err
+	}
+	kind := contentsDom.Find(".sub-account-txt").Text()
 	if strings.Contains(kind, "支店") {
 		kind = "銀行"
 	} else {
