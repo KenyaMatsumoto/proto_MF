@@ -42,7 +42,6 @@ func (d *db) UserCreate(user []*User, userId string, updatedAt *time.Time) (err 
 		}
 
 		rowsAffect, err := result.RowsAffected()
-		log.Println(rowsAffect)
 		if err != nil {
 			return err
 		}

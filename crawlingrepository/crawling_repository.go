@@ -13,7 +13,7 @@ import (
 	"github.com/chromedp/chromedp"
 	"github.com/google/uuid"
 	"github.com/gyoza-and-beer/proto-MF/config"
-	"github.com/gyoza-and-beer/proto-MF/crawlingproto"
+	crawlingproto "github.com/gyoza-and-beer/proto-MF/proto"
 )
 
 type CrawlingInterface interface {
@@ -68,7 +68,7 @@ func (c *crawlingRepository) Crawling(pass string, input *crawlingproto.UserInpu
 	var user []*User
 	var banks []*Bank
 	var details []*Detail
-	var detailsUrl []*DetailUrl
+	var detailUrls []*DetailUrl
 
 	ctx, cancel := context.WithTimeout(config.NewChromedpContext(), 3*time.Minute)
 	defer cancel()
@@ -117,7 +117,7 @@ func (c *crawlingRepository) Crawling(pass string, input *crawlingproto.UserInpu
 
 		chromedp.Nodes(`#dropdown-office`, &officeNodes, chromedp.ByQuery).Do(ctx)
 		if len(officeNodes) == 0 {
-			return fmt.Errorf("会社名が取れませんでした。")
+			return fmt.Errorf("会社名のNodeが取得できませんでした。")
 		}
 		res, err := dom.GetOuterHTML().WithNodeID(officeNodes[0].NodeID).Do(ctx)
 		if err != nil {
@@ -126,7 +126,7 @@ func (c *crawlingRepository) Crawling(pass string, input *crawlingproto.UserInpu
 
 		user, err = scrapingOfOfficeName(res, user)
 		if err != nil {
-			fmt.Printf("error %s", err)
+			fmt.Printf("会社名が取得できませんでした %s", err)
 		}
 
 		chromedp.Location(&illegalCheck).Do(ctx)
@@ -143,8 +143,6 @@ func (c *crawlingRepository) Crawling(pass string, input *crawlingproto.UserInpu
 			chromedp.WaitReady(`.text-center`, chromedp.ByQuery).Do(ctx)
 			bankNodes := []*cdp.Node{}
 
-			time.Sleep(1 * time.Second)
-
 			chromedp.Nodes(`.ca-table-horizontal.mf-mb10`, &bankNodes, chromedp.ByQueryAll).Do(ctx)
 			if len(bankNodes) == 0 {
 				return fmt.Errorf("銀行、並びにカード情報が取れませんでした。")
@@ -154,14 +152,13 @@ func (c *crawlingRepository) Crawling(pass string, input *crawlingproto.UserInpu
 				fmt.Printf("error %s", err)
 			}
 
-			banks, detailsUrl, err = scrapingOfBanks(res, banks, user, detailsUrl)
+			banks, detailUrls, err = scrapingOfBanks(res, banks, user, detailUrls)
 			if err != nil {
 				fmt.Printf("error %s", err)
 			}
 
-			for i, n := range banks {
-				var detailURL = n.Kind
-				kind, err := fetchBanksKind(ctx, detailURL, registeredListUrl)
+			for i, n := range detailUrls {
+				kind, err := fetchBanksKind(ctx, n.DetailUrl, registeredListUrl)
 				if err != nil {
 					return fmt.Errorf("銀行、並びにカードの種別ができませんでした。")
 				}
@@ -174,7 +171,7 @@ func (c *crawlingRepository) Crawling(pass string, input *crawlingproto.UserInpu
 			continuationNode := []*cdp.Node{}
 			detailsNode := []*cdp.Node{}
 			bankIdNode := []*cdp.Node{}
-			for _, n := range detailsUrl {
+			for _, n := range detailUrls {
 				chromedp.Navigate(n.DetailUrl).Do(ctx)
 				chromedp.WaitVisible(`#js-acts-table-tbody`, chromedp.NodeVisible).Do(ctx)
 				time.Sleep(3 * time.Second)
@@ -245,7 +242,7 @@ func scrapingOfOfficeName(res string, user []*User) ([]*User, error) {
 	return user, nil
 }
 
-func scrapingOfBanks(res string, banks []*Bank, user []*User, detailsUrl []*DetailUrl) ([]*Bank, []*DetailUrl, error) {
+func scrapingOfBanks(res string, banks []*Bank, user []*User, detailUrls []*DetailUrl) ([]*Bank, []*DetailUrl, error) {
 	readerCurContents := strings.NewReader(res)
 	contentsDom, err := goquery.NewDocumentFromReader(readerCurContents)
 
@@ -278,13 +275,12 @@ func scrapingOfBanks(res string, banks []*Bank, user []*User, detailsUrl []*Deta
 			LastCommit:      v.Find("td:nth-child(3)").Text(),
 			ResitrationDate: v.Find("td.last-aggregated-datetime.text-center").Text(),
 			BankStatus:      bankStatus,
-			Kind:            kindURL,
 		})
-		detailsUrl = append(detailsUrl, &DetailUrl{
+		detailUrls = append(detailUrls, &DetailUrl{
 			DetailUrl: kindURL,
 		})
 	})
-	return banks, detailsUrl, nil
+	return banks, detailUrls, nil
 }
 
 func fetchBanksKind(ctx context.Context, detailUrl string, registeredListUrl string) (string, error) {

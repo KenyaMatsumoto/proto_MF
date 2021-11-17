@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	pb "github.com/gyoza-and-beer/proto-MF/crawlingproto"
+	pb "github.com/gyoza-and-beer/proto-MF/proto"
 	"google.golang.org/grpc"
 )
 
@@ -19,8 +19,8 @@ func main() {
 	defer cc.Close()
 	c := pb.NewCrawlingServiceClient(cc)
 
-	// crawlingWrite(c)
-	crawlingRead(c)
+	crawlingWrite(c)
+	// crawlingRead(c)
 }
 
 func crawlingWrite(c pb.CrawlingServiceClient) {

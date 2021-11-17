@@ -7,8 +7,8 @@ import (
 	"net"
 	"time"
 
-	pb "github.com/gyoza-and-beer/proto-MF/crawlingproto"
 	"github.com/gyoza-and-beer/proto-MF/crawlingrepository"
+	pb "github.com/gyoza-and-beer/proto-MF/proto"
 	"google.golang.org/grpc"
 )
 
@@ -87,6 +87,8 @@ func (*server) MfRead(ctx context.Context, req *pb.MfRequest) (*pb.MfResponse, e
 }
 
 func main() {
+	log.Println("Run MF crawling server")
+
 	port := ":50051"
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
@@ -95,8 +97,6 @@ func main() {
 
 	s := grpc.NewServer()
 	pb.RegisterCrawlingServiceServer(s, &server{})
-
-	log.Printf("gRPC server listengin on " + port)
 
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
