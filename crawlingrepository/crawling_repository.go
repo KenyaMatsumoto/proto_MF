@@ -12,8 +12,8 @@ import (
 	"github.com/chromedp/cdproto/dom"
 	"github.com/chromedp/chromedp"
 	"github.com/google/uuid"
-	"github.com/gyoza-and-beer/proto-MF/config"
-	crawlingproto "github.com/gyoza-and-beer/proto-MF/proto"
+	"upsider.crawling/config"
+	"upsider.crawling/crawlingproto"
 )
 
 type CrawlingInterface interface {

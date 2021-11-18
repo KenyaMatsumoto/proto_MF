@@ -1,4 +1,4 @@
-module github.com/gyoza-and-beer/proto-MF
+module upsider.crawling
 
 go 1.17
 

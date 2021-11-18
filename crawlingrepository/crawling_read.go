@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	pb "github.com/gyoza-and-beer/proto-MF/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	pb "upsider.crawling/crawlingproto"
 )
 
 type CrawlingReadInterface interface {

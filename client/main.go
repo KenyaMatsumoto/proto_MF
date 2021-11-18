@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 
-	pb "github.com/gyoza-and-beer/proto-MF/proto"
 	"google.golang.org/grpc"
+	pb "upsider.crawling/crawlingproto"
 )
 
 func main() {
